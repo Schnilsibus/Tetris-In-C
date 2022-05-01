@@ -706,8 +706,6 @@ int main() {
         initializeField(dynamic_field);
         initializePreview(preview);
 
-        printf("HelloWorld\n");
-
         deleteField(static_field);
         deleteField(dynamic_field);
         deletePreview(preview);
