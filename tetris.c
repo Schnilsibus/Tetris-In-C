@@ -2,31 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define TRUE 1
-#define FALSE 0
-
-#define FIELD_WIDTH 10
-#define FIELD_HEIGHT 22
-
-#define MAX_BOUND_ALL_TILES_X 4
-#define MAX_BOUND_ALL_TILES_Y 4
-
-#define NUMBER_OF_TETROMINIOS 7
-
-#define START_TICK_SPEED 300
-
-#define SPAWN_OFFSET_X 3
-#define SPAWN_OFFSET_Y 0
-
-enum TETROMINOS {I = 1, O = 2, L = 3, J = 4, T = 5, Z = 6, S = 7};
-
-static int I_UP[8] = {1, 0, 1, 1, 1, 2, 1, 3};
-static int O_UP[8] = {0, 1, 1, 1, 0, 2, 1, 2};
-static int L_UP[8] = {1, 0, 1, 1, 1, 2, 0, 2};
-static int J_UP[8] = {1, 0, 1, 1, 1, 2, 0, 0};
-static int T_UP[8] = {1, 0, 1, 1, 1, 2, 0, 1};
-static int Z_UP[8] = {0, 0, 0, 1, 1, 1, 1, 2};
-static int S_UP[8] = {1, 0, 1, 1, 0, 1, 0, 2};
+#include "tetris.h"
 
 void delay(int milliseconds) {
         time_t end;
@@ -301,6 +277,10 @@ int checkGameOver(int **static_field) {
 
 int checkLineFull(int **static_field, int line) {
         int i;
+
+        if (line < 0 || line >= FIELD_HEIGHT) {
+                return FALSE;
+        }
 
         for (i = 0; i < FIELD_WIDTH; i++) {
                 if (*(*(static_field + line) + i) == 0) {
@@ -694,8 +674,25 @@ int rotateTileClockwise(int **static_field, int **dynamic_field, enum TETROMINOS
         return TRUE;
 }
 
+void removeLine(int **static_field, int line) {
+        int i, j;
+
+        if (line < 0 || line >= FIELD_HEIGHT) {
+                return;
+        }
+        for (j = line; j >= FIRST_VISIBLE_LINE_INDEX; j--) {
+                for (i = 0; i < FIELD_WIDTH; i++) {
+                        if (*(*(static_field + j - 1) + i) == 1) {
+                                *(*(static_field + j) + i) = 1;
+                        } else {
+                                *(*(static_field + j) + i) = 0;
+                        }
+                }
+        }
+}
+
 int main() {
-        int **static_field, **dynamic_field, **preview, tile_pos_x = SPAWN_OFFSET_X, tile_pos_y = SPAWN_OFFSET_Y, i = 0;
+        int **static_field, **dynamic_field, **preview, tile_pos_x = SPAWN_OFFSET_X, tile_pos_y = SPAWN_OFFSET_Y, i, j;
 
 
         srand(time(NULL));
@@ -705,6 +702,19 @@ int main() {
         initializeField(static_field);
         initializeField(dynamic_field);
         initializePreview(preview);
+
+        for (j = 0; j < FIELD_HEIGHT; j++) {
+                for (i = 0; i < FIELD_WIDTH; i++) {
+                        if (rand() % 8 != 1 && j >= 2) {
+                                *(*(static_field + j) + i) = 1;
+                        } else {
+                                *(*(static_field + j) + i) = 0;
+                        }
+                }
+        }
+        printGameFull(static_field, dynamic_field, preview);
+        removeLine(static_field, 3);
+        printGameFull(static_field, dynamic_field, preview);
 
         deleteField(static_field);
         deleteField(dynamic_field);
