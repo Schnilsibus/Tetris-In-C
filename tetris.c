@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <conio.h>
 
 #include "tetris.h"
 
@@ -692,7 +693,7 @@ void removeLine(int **static_field, int line) {
 }
 
 int main() {
-        int **static_field, **dynamic_field, **preview, tile_pos_x = SPAWN_OFFSET_X, tile_pos_y = SPAWN_OFFSET_Y, i, j;
+        int **static_field, **dynamic_field, **preview, tile_pos_x = SPAWN_OFFSET_X, tile_pos_y = SPAWN_OFFSET_Y;
 
 
         srand(time(NULL));
@@ -703,18 +704,31 @@ int main() {
         initializeField(dynamic_field);
         initializePreview(preview);
 
-        for (j = 0; j < FIELD_HEIGHT; j++) {
-                for (i = 0; i < FIELD_WIDTH; i++) {
-                        if (rand() % 8 != 1 && j >= 2) {
-                                *(*(static_field + j) + i) = 1;
-                        } else {
-                                *(*(static_field + j) + i) = 0;
+        while (1) {
+
+                if (kbhit()) {
+                        int a, c;
+
+                        a = getch();
+                        if (a == 'q') {
+                                break;
+                        } else if (a == 0 || a == 0xE0) {
+                                if (kbhit()) {
+                                        c = getch();
+                                        if (c == UP) {
+                                                printf("UP\n");
+                                        } else if (c == LEFT) {
+                                                printf("LEFT\n");
+                                        } else if (c == DOWN) {
+                                                printf("DOWN\n");
+                                        } else if (c == RIGHT) {
+                                                printf("RIGHT\n");
+                                        }
+                                }
                         }
                 }
         }
-        printGameFull(static_field, dynamic_field, preview);
-        removeLine(static_field, 3);
-        printGameFull(static_field, dynamic_field, preview);
+
 
         deleteField(static_field);
         deleteField(dynamic_field);
