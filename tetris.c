@@ -692,9 +692,39 @@ void removeLine(int **static_field, int line) {
         }
 }
 
+enum KEYS checkKeyHit() {
+        int a, c;
+
+        if (kbhit()) {
+                a = getch();
+                if (a == QUIT || a == HELP) {
+                        return a;
+                } else if (a == 0 || a == 0xE0) {
+                        if (kbhit()) {
+                                c = getch();
+                                if (c == UP) {
+                                        return UP;
+                                } else if (c == LEFT) {
+                                        return LEFT;
+                                } else if (c == DOWN) {
+                                        return DOWN;
+                                } else if (c == RIGHT) {
+                                        return RIGHT;
+                                } else {
+                                        return OTHER;
+                                }
+                        }
+                } else {
+                        return OTHER;
+                }
+        }
+        return NONE;
+}
+
 int main() {
         int **static_field, **dynamic_field, **preview, tile_pos_x = SPAWN_OFFSET_X, tile_pos_y = SPAWN_OFFSET_Y;
-
+        enum TETROMINOS activeTile;
+        enum KEYS key;
 
         srand(time(NULL));
         static_field = declareField();
@@ -704,35 +734,48 @@ int main() {
         initializeField(dynamic_field);
         initializePreview(preview);
 
+        activeTile = getNextTile();
+        spawnNewTile(static_field, dynamic_field, activeTile, &tile_pos_x, &tile_pos_y);
+        printGameFull(static_field, dynamic_field, preview);
+
         while (1) {
-
-                if (kbhit()) {
-                        int a, c;
-
-                        a = getch();
-                        if (a == 'q') {
+                clearConsole();
+                key = checkKeyHit();
+                switch (key) {
+                        case QUIT:
+                                printf("quit\n");
+                                return 0;
                                 break;
-                        } else if (a == 0 || a == 0xE0) {
-                                if (kbhit()) {
-                                        c = getch();
-                                        if (c == UP) {
-                                                printf("UP\n");
-                                        } else if (c == LEFT) {
-                                                printf("LEFT\n");
-                                        } else if (c == DOWN) {
-                                                printf("DOWN\n");
-                                        } else if (c == RIGHT) {
-                                                printf("RIGHT\n");
-                                        }
-                                }
-                        }
+                        case HELP:
+                                printf("help\n");
+                                break;
+                        case UP:
+                                printf("up\n");
+                                rotateTileClockwise(static_field, dynamic_field, activeTile, tile_pos_x, tile_pos_y);
+                                break;
+                        case DOWN:
+                                printf("down\n");
+                                moveTileDown(static_field, dynamic_field, &tile_pos_x, &tile_pos_y);
+                                break;
+                        case LEFT:
+                                printf("left\n");
+                                moveTileLeft(static_field, dynamic_field, &tile_pos_x, &tile_pos_y);
+                                break;
+                        case RIGHT:
+                                printf("right\n");
+                                moveTileRight(static_field, dynamic_field, &tile_pos_x, &tile_pos_y);
+                                break;
+                        case OTHER:
+                        case NONE:
+                                break;
                 }
+                printGameFull(static_field, dynamic_field, preview);
+                delay(300);
         }
-
 
         deleteField(static_field);
         deleteField(dynamic_field);
         deletePreview(preview);
 
-        return 0;
+        exit(0);
 }
