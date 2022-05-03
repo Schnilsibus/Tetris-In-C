@@ -126,6 +126,7 @@ void printGame(int **static_field, int **dynamic_field, int**preview) {
         int i, j;
 
         printString = (char *) malloc(5 * sizeof(char));
+        clearConsole();
         for (i = 0; i < MAX_BOUND_ALL_TILES_Y; i++) {
                 printf("<! ");
                 for (j = 0; j < MAX_BOUND_ALL_TILES_X; j++) {
@@ -176,6 +177,7 @@ void printGameFull(int **static_field, int **dynamic_field, int**preview) {
         int i, j;
 
         printString = (char *) malloc(5 * sizeof(char));
+        clearConsole();
         for (i = 0; i < MAX_BOUND_ALL_TILES_Y; i++) {
                 printf("<! ");
                 for (j = 0; j < MAX_BOUND_ALL_TILES_X; j++) {
@@ -721,7 +723,7 @@ enum KEYS checkKeyHit() {
         return NONE;
 }
 
-enum KEYS  reactToKey(int **static_field, int **dynamic_field, int **preview, enum TETROMINOS activeTile, int *tile_pos_x, int *tile_pos_y) {
+enum KEYS  reactToKey(int **static_field, int **dynamic_field, enum TETROMINOS activeTile, int *tile_pos_x, int *tile_pos_y) {
         enum KEYS key = checkKeyHit();
         switch (key) {
                 case QUIT:
@@ -742,40 +744,85 @@ enum KEYS  reactToKey(int **static_field, int **dynamic_field, int **preview, en
                 case OTHER:
                         return OTHER;
                 case NONE:
+                default:
                         return NONE;
         }
 }
 
-void run(int **static_field, int **dynamic_field, int **preview, enum TETROMINOS active_tile, enumTETROMINO next_tile, int *tile_pos_x, int *tile_pos_y) {
-        int test;
+int removeFullLines(int **static_field) {
+        int i, cnt = 0;
 
-        active_tile = getNextTile();
-        next_tile = getNextTile();
-        if (spawnNewTile(static_field, dynamic_field, active_tile, tile_pos_x, tile_pos_y)) {
-                /*could not spawn first tile --> error*/
+        for (i = FIELD_HEIGHT - 1; i >= FIRST_VISIBLE_LINE_INDEX; i--) {
+                if (checkLineFull(static_field, i)) {
+                        removeLine(static_field, i);
+                        cnt++;
+                        i++;
+                }
         }
-        setPreview(preview, next_tile);
-        while(1) {
-
-        }
+        return cnt;
 }
 
-int main() {
-        int **static_field, **dynamic_field, **preview, tile_pos_x = SPAWN_OFFSET_X, tile_pos_y = SPAWN_OFFSET_Y;
+void run() {
+        int **static_field, **dynamic_field, **preview, tile_pos_x, tile_pos_y, tick_speed, exit_gameplay;
         enum TETROMINOS active_tile, next_tile;
-        enum KEYS key;
+        clock_t last_move;
 
         srand(time(NULL));
+
         static_field = declareField();
         dynamic_field = declareField();
         preview = declarePreview();
         initializeField(static_field);
         initializeField(dynamic_field);
         initializePreview(preview);
-        run(static_field, dynmamic_field, preview, active_tile, next_tile, &tile_pos_x, &tile_pos_y);
+
+        tick_speed = START_TICK_SPEED;
+        active_tile = getNextTile();
+        next_tile = getNextTile();
+        if (! spawnNewTile(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y)) {
+                /*could not spawn first tile --> error*/
+        }
+        setPreview(preview, next_tile);
+        last_move = clock();
+        while(exit_gameplay) {
+                switch (reactToKey(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y)) {
+                        case QUIT:
+                                exit_gameplay = FALSE;
+                                break;
+                        case HELP:
+                                break;
+                        case UP:
+                        case LEFT:
+                        case RIGHT:
+                                printGameFull(static_field, dynamic_field, preview);
+                                break;
+                        case DOWN:
+                                break;
+                        case OTHER:
+                        case NONE:
+                                break;
+                }
+                if ((clock() - last_move) / CLOCKS_PER_SEC * 1000 >= tick_speed) {
+                        last_move = clock();
+                        if (! moveTileDown(static_field, dynamic_field, &tile_pos_x, &tile_pos_y)) {
+                                addActiveTileToStaticField(static_field, dynamic_field, tile_pos_x, tile_pos_y);
+                                removeFullLines(static_field);
+                                active_tile = next_tile;
+                                next_tile = getNextTile();
+                                if (! spawnNewTile(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y)) {
+                                        /*game over*/
+                                }
+                        }
+                        printGameFull(static_field, dynamic_field, preview);
+                }
+        }
+
         deleteField(static_field);
         deleteField(dynamic_field);
         deletePreview(preview);
+}
 
+int main() {
+        run();
         exit(0);
 }
