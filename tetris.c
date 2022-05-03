@@ -721,9 +721,48 @@ enum KEYS checkKeyHit() {
         return NONE;
 }
 
+enum KEYS  reactToKey(int **static_field, int **dynamic_field, int **preview, enum TETROMINOS activeTile, int *tile_pos_x, int *tile_pos_y) {
+        enum KEYS key = checkKeyHit();
+        switch (key) {
+                case QUIT:
+                        return QUIT;
+                case HELP:
+                        return HELP;
+                case UP:
+                        rotateTileClockwise(static_field, dynamic_field, activeTile, *tile_pos_x, *tile_pos_y);
+                        return UP;
+                case DOWN:
+                        return DOWN;
+                case LEFT:
+                        moveTileLeft(static_field, dynamic_field, tile_pos_x, tile_pos_y);
+                        return LEFT;
+                case RIGHT:
+                        moveTileRight(static_field, dynamic_field, tile_pos_x, tile_pos_y);
+                        return RIGHT;
+                case OTHER:
+                        return OTHER;
+                case NONE:
+                        return NONE;
+        }
+}
+
+void run(int **static_field, int **dynamic_field, int **preview, enum TETROMINOS active_tile, enumTETROMINO next_tile, int *tile_pos_x, int *tile_pos_y) {
+        int test;
+
+        active_tile = getNextTile();
+        next_tile = getNextTile();
+        if (spawnNewTile(static_field, dynamic_field, active_tile, tile_pos_x, tile_pos_y)) {
+                /*could not spawn first tile --> error*/
+        }
+        setPreview(preview, next_tile);
+        while(1) {
+
+        }
+}
+
 int main() {
         int **static_field, **dynamic_field, **preview, tile_pos_x = SPAWN_OFFSET_X, tile_pos_y = SPAWN_OFFSET_Y;
-        enum TETROMINOS activeTile;
+        enum TETROMINOS active_tile, next_tile;
         enum KEYS key;
 
         srand(time(NULL));
@@ -733,46 +772,7 @@ int main() {
         initializeField(static_field);
         initializeField(dynamic_field);
         initializePreview(preview);
-
-        activeTile = getNextTile();
-        spawnNewTile(static_field, dynamic_field, activeTile, &tile_pos_x, &tile_pos_y);
-        printGameFull(static_field, dynamic_field, preview);
-
-        while (1) {
-                clearConsole();
-                key = checkKeyHit();
-                switch (key) {
-                        case QUIT:
-                                printf("quit\n");
-                                return 0;
-                                break;
-                        case HELP:
-                                printf("help\n");
-                                break;
-                        case UP:
-                                printf("up\n");
-                                rotateTileClockwise(static_field, dynamic_field, activeTile, tile_pos_x, tile_pos_y);
-                                break;
-                        case DOWN:
-                                printf("down\n");
-                                moveTileDown(static_field, dynamic_field, &tile_pos_x, &tile_pos_y);
-                                break;
-                        case LEFT:
-                                printf("left\n");
-                                moveTileLeft(static_field, dynamic_field, &tile_pos_x, &tile_pos_y);
-                                break;
-                        case RIGHT:
-                                printf("right\n");
-                                moveTileRight(static_field, dynamic_field, &tile_pos_x, &tile_pos_y);
-                                break;
-                        case OTHER:
-                        case NONE:
-                                break;
-                }
-                printGameFull(static_field, dynamic_field, preview);
-                delay(300);
-        }
-
+        run(static_field, dynmamic_field, preview, active_tile, next_tile, &tile_pos_x, &tile_pos_y);
         deleteField(static_field);
         deleteField(dynamic_field);
         deletePreview(preview);
