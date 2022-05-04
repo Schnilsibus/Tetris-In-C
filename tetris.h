@@ -19,7 +19,8 @@
 #define SPAWN_OFFSET_Y 0
 
 enum TETROMINOS {I = 1, O = 2, L = 3, J = 4, T = 5, Z = 6, S = 7};
-enum KEYS {UP = 72, LEFT = 75, DOWN = 80, RIGHT = 77, QUIT = 113, HELP = 104, OTHER = 0, NONE = -1};
+enum KEYS {UP = 72, LEFT = 75, DOWN = 80, RIGHT = 77, ESC = 27, H = 104, P = 112, M = 109, OTHER = 0, NONE = -1};
+enum STATES {START = 0, RUNNING = 1, GAME_OVER = 2, HELP = 3, EXIT = 4};
 
 static int I_UP[8] = {1, 0, 1, 1, 1, 2, 1, 3};
 static int O_UP[8] = {0, 1, 1, 1, 0, 2, 1, 2};

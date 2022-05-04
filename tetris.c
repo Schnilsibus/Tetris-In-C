@@ -498,7 +498,7 @@ int checkRotationPossible(int **static_field, int **dynamic_field, enum TETROMIN
                                                 calculateAbsolutePosition(relative_x, relative_y, x_pos, y_pos, &rotated_x, &rotated_y);
                                                 x = (int) rotated_x;
                                                 y = (int) rotated_y;
-                                                if (! checkCoordinatesOnField(j, i) || *(*(static_field + y) + x) == 1) {
+                                                if (! checkCoordinatesOnField(x, y) || *(*(static_field + y) + x) == 1) {
                                                         return FALSE;
                                                 }
                                         }
@@ -520,7 +520,7 @@ int checkRotationPossible(int **static_field, int **dynamic_field, enum TETROMIN
                                                 calculateAbsolutePosition(relative_x, relative_y, x_pos, y_pos, &rotated_x, &rotated_y);
                                                 x = (int) rotated_x;
                                                 y = (int) rotated_y;
-                                                if (! checkCoordinatesOnField(j, i) || *(*(static_field + y) + x) == 1) {
+                                                if (! checkCoordinatesOnField(x, y) || *(*(static_field + y) + x) == 1) {
                                                         return FALSE;
                                                 }
                                         }
@@ -677,6 +677,10 @@ int rotateTileClockwise(int **static_field, int **dynamic_field, enum TETROMINOS
         return TRUE;
 }
 
+void dropTileHard(int **static_field, int **dynamic_field, int *tile_pos_x, int *tile_pos_y) {
+        while(moveTileDown(static_field, dynamic_field, tile_pos_x, tile_pos_y)) {}
+}
+
 void removeLine(int **static_field, int line) {
         int i, j;
 
@@ -699,7 +703,7 @@ enum KEYS checkKeyHit() {
 
         if (kbhit()) {
                 a = getch();
-                if (a == QUIT || a == HELP) {
+                if (a == ESC || a == H || a == P || a == M) {
                         return a;
                 } else if (a == 0 || a == 0xE0) {
                         if (kbhit()) {
@@ -723,17 +727,23 @@ enum KEYS checkKeyHit() {
         return NONE;
 }
 
-enum KEYS  reactToKey(int **static_field, int **dynamic_field, enum TETROMINOS activeTile, int *tile_pos_x, int *tile_pos_y) {
+enum KEYS  reactToKeyRun(int **static_field, int **dynamic_field, enum TETROMINOS activeTile, int *tile_pos_x, int *tile_pos_y, enum STATES *app_state) {
         enum KEYS key = checkKeyHit();
+
         switch (key) {
-                case QUIT:
-                        return QUIT;
-                case HELP:
-                        return HELP;
+                case ESC:
+                        *app_state = EXIT;
+                        return ESC;
+                case H:
+                case P:
+                case M:
+                        return key;
                 case UP:
                         rotateTileClockwise(static_field, dynamic_field, activeTile, *tile_pos_x, *tile_pos_y);
                         return UP;
+
                 case DOWN:
+                        dropTileHard(static_field, dynamic_field, tile_pos_x, tile_pos_y);
                         return DOWN;
                 case LEFT:
                         moveTileLeft(static_field, dynamic_field, tile_pos_x, tile_pos_y);
@@ -741,6 +751,45 @@ enum KEYS  reactToKey(int **static_field, int **dynamic_field, enum TETROMINOS a
                 case RIGHT:
                         moveTileRight(static_field, dynamic_field, tile_pos_x, tile_pos_y);
                         return RIGHT;
+                case OTHER:
+                        return OTHER;
+                case NONE:
+                default:
+                        return NONE;
+        }
+}
+enum KEYS reactToKeyStd(enum STATES *app_state) {
+        enum KEYS key = checkKeyHit();
+        switch (key) {
+                case ESC:
+                        *app_state = EXIT;
+                        return ESC;
+                case H:
+                        if (*app_state == START) {
+                                *app_state = HELP;
+                                return H;
+                        } else {
+                                return OTHER;
+                        }
+                case P:
+                        if (*app_state == START) {
+                                *app_state = RUNNING;
+                                return P;
+                        } else {
+                                return OTHER;
+                        }
+                        return P;
+                case M:
+                        if (*app_state == HELP) {
+                                *app_state = START;
+                                return M;
+                        } else {
+                                return OTHER;
+                        }
+                case UP:
+                case DOWN:
+                case LEFT:
+                case RIGHT:
                 case OTHER:
                         return OTHER;
                 case NONE:
@@ -762,8 +811,8 @@ int removeFullLines(int **static_field) {
         return cnt;
 }
 
-void run() {
-        int **static_field, **dynamic_field, **preview, tile_pos_x, tile_pos_y, tick_speed, exit_gameplay;
+void runGame(enum STATES *app_state) {
+        int **static_field, **dynamic_field, **preview, tile_pos_x, tile_pos_y, tick_speed;
         enum TETROMINOS active_tile, next_tile;
         clock_t last_move;
 
@@ -784,12 +833,12 @@ void run() {
         }
         setPreview(preview, next_tile);
         last_move = clock();
-        while(exit_gameplay) {
-                switch (reactToKey(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y)) {
-                        case QUIT:
-                                exit_gameplay = FALSE;
-                                break;
-                        case HELP:
+        while(*app_state == RUNNING) {
+                switch (reactToKeyRun(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y, app_state)) {
+                        case ESC:
+                        case H:
+                        case P:
+                        case M:
                                 break;
                         case UP:
                         case LEFT:
@@ -809,8 +858,9 @@ void run() {
                                 removeFullLines(static_field);
                                 active_tile = next_tile;
                                 next_tile = getNextTile();
+                                setPreview(preview, next_tile);
                                 if (! spawnNewTile(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y)) {
-                                        /*game over*/
+                                        *app_state = GAME_OVER;
                                 }
                         }
                         printGameFull(static_field, dynamic_field, preview);
@@ -822,7 +872,41 @@ void run() {
         deletePreview(preview);
 }
 
+void runStartMenu(enum STATES *app_state) {
+        printf("This is a title screen\n");
+        printf("press h for help p to play\n");
+        while (*app_state == START) {
+                reactToKeyStd(app_state);
+        }
+}
+
+void runHelpMenu(enum STATES *app_state) {
+        printf("This is a help menu\n");
+        while (*app_state == HELP) {
+                reactToKeyStd(app_state);
+        }
+}
+
 int main() {
-        run();
+        enum STATES app_state;
+        app_state = START;
+        while (app_state != EXIT) {
+                switch (app_state) {
+                        case START:
+                                runStartMenu(&app_state);
+                                break;
+                        case RUNNING:
+                                runGame(&app_state);
+                                break;
+                        case GAME_OVER:
+                                break;
+                        case HELP:
+                                runHelpMenu(&app_state);
+                                break;
+                        case EXIT:
+                                break;
+                }
+        }
+
         exit(0);
 }
