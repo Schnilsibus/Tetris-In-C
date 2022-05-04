@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <conio.h>
+#include <math.h>
 
 #include "tetris.h"
 
@@ -121,9 +122,15 @@ int checkCoordinatesOnField(int x, int y) {
         }
 }
 
-void printGame(int **static_field, int **dynamic_field, int**preview) {
+void convertTime(double time, int *hours, int *minutes, int *seconds) {
+        *hours = (int) floor(time / 3600);
+        *minutes = (int) floor((time - (*hours * 3600)) / 60);
+        *seconds = (int) floor((time - (*hours * 3600) - (*minutes * 60)));
+}
+
+void printGame(int **static_field, int **dynamic_field, int**preview, double time, int line_cnt, int tetris_cnt, int score, int level) {
         char *printString;
-        int i, j;
+        int i, j, hours, minutes, seconds;
 
         printString = (char *) malloc(5 * sizeof(char));
         clearConsole();
@@ -169,12 +176,14 @@ void printGame(int **static_field, int **dynamic_field, int**preview) {
                 printf("\\/ ");
         }
         printf("\n");
+        convertTime(time, &hours, &minutes, &seconds);
+        printf("Time played: %ih:%im:%is\nScore: %i\nLevel: %i\nLines: %i\nTetris: %i\n", hours, minutes, seconds, score, level, line_cnt, tetris_cnt);
         free(printString);
 }
 
-void printGameFull(int **static_field, int **dynamic_field, int**preview) {
+void printGameFull(int **static_field, int **dynamic_field, int**preview, double time, int line_cnt, int tetris_cnt, int score, int level) {
         char *printString;
-        int i, j;
+        int i, j, hours, minutes, seconds;
 
         printString = (char *) malloc(5 * sizeof(char));
         clearConsole();
@@ -227,6 +236,8 @@ void printGameFull(int **static_field, int **dynamic_field, int**preview) {
                 printf("\\/ ");
         }
         printf("\n");
+        convertTime(time, &hours, &minutes, &seconds);
+        printf("Time played: %ih:%im:%is\nScore: %i\nLevel: %i\nLines: %i\nTetris: %i\n", hours, minutes, seconds, score, level, line_cnt, tetris_cnt);
         free(printString);
 }
 
@@ -811,13 +822,56 @@ int removeFullLines(int **static_field) {
         return cnt;
 }
 
+void awardPoints(int lines, int level, int *score) {
+        switch (lines) {
+                case 1:
+                        *score += POINTS_1_LINE * level;
+                        break;
+                case 2:
+                        *score += POINTS_2_LINE * level;
+                        break;
+                case 3:
+                        *score += POINTS_3_LINE * level;
+                        break;
+                case 4:
+                        *score += POINTS_4_LINE * level;
+                        break;
+        }
+}
+
+int updateLevel(int line_cnt, int *level) {
+        if (line_cnt >= *level * LINES_FOR_NEXT_LEVEL) {
+                *level += 1;
+                return TRUE;
+        } else {
+                return FALSE;
+        }
+}
+
+void updateTickSpeed(int *tick_speed, int level) {
+        *tick_speed = MAX_TICK_SPEED - ((MAX_TICK_SPEED - MIN_TICK_SPEED) / MAX_LEVEL * level);
+}
+
+void reactToLineClear(int lines, int *line_cnt, int *tetris_cnt, int *level, int *score, int *tick_speed) {
+        awardPoints(lines, *level, score);
+        if (lines == LINES_FOR_TETRIS) {
+                *tetris_cnt += 1;
+        }
+        *line_cnt += lines;
+        if (updateLevel(*line_cnt, level)) {
+                updateTickSpeed(tick_speed, *level);
+        }
+}
+
 void runGame(enum STATES *app_state) {
-        int **static_field, **dynamic_field, **preview, tile_pos_x, tile_pos_y, tick_speed;
+        int **static_field, **dynamic_field, **preview, tile_pos_x, tile_pos_y, tick_speed, level, line_cnt, score, tetris_cnt;
         enum TETROMINOS active_tile, next_tile;
         clock_t last_move;
+        time_t start_time;
 
         srand(time(NULL));
 
+        start_time = time(NULL);
         static_field = declareField();
         dynamic_field = declareField();
         preview = declarePreview();
@@ -825,7 +879,10 @@ void runGame(enum STATES *app_state) {
         initializeField(dynamic_field);
         initializePreview(preview);
 
-        tick_speed = START_TICK_SPEED;
+        level = MIN_LEVEL;
+        line_cnt = 0;
+        score = 0;
+        tick_speed = MAX_TICK_SPEED;
         active_tile = getNextTile();
         next_tile = getNextTile();
         if (! spawnNewTile(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y)) {
@@ -843,7 +900,7 @@ void runGame(enum STATES *app_state) {
                         case UP:
                         case LEFT:
                         case RIGHT:
-                                printGameFull(static_field, dynamic_field, preview);
+                                printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), line_cnt, tetris_cnt, score, level);
                                 break;
                         case DOWN:
                                 break;
@@ -851,11 +908,11 @@ void runGame(enum STATES *app_state) {
                         case NONE:
                                 break;
                 }
-                if ((clock() - last_move) / CLOCKS_PER_SEC * 1000 >= tick_speed) {
+                if (((clock() - last_move) / (float) CLOCKS_PER_SEC) * 1000 >= tick_speed) {
                         last_move = clock();
                         if (! moveTileDown(static_field, dynamic_field, &tile_pos_x, &tile_pos_y)) {
                                 addActiveTileToStaticField(static_field, dynamic_field, tile_pos_x, tile_pos_y);
-                                removeFullLines(static_field);
+                                reactToLineClear(removeFullLines(static_field), &line_cnt, &tetris_cnt, &level, &score, &tick_speed);
                                 active_tile = next_tile;
                                 next_tile = getNextTile();
                                 setPreview(preview, next_tile);
@@ -863,7 +920,7 @@ void runGame(enum STATES *app_state) {
                                         *app_state = GAME_OVER;
                                 }
                         }
-                        printGameFull(static_field, dynamic_field, preview);
+                        printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), line_cnt, tetris_cnt, score, level);
                 }
         }
 

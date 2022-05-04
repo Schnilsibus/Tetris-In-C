@@ -13,10 +13,22 @@
 
 #define NUMBER_OF_TETROMINIOS 7
 
-#define START_TICK_SPEED 300
+#define MAX_TICK_SPEED 300
+#define MIN_TICK_SPEED 100
 
 #define SPAWN_OFFSET_X 3
 #define SPAWN_OFFSET_Y 0
+
+#define LINES_FOR_NEXT_LEVEL 10
+#define MAX_LEVEL 15
+#define MIN_LEVEL 1
+
+#define POINTS_1_LINE 40
+#define POINTS_2_LINE 100
+#define POINTS_3_LINE 300
+#define POINTS_4_LINE 1200
+
+#define LINES_FOR_TETRIS 4
 
 enum TETROMINOS {I = 1, O = 2, L = 3, J = 4, T = 5, Z = 6, S = 7};
 enum KEYS {UP = 72, LEFT = 75, DOWN = 80, RIGHT = 77, ESC = 27, H = 104, P = 112, M = 109, OTHER = 0, NONE = -1};
