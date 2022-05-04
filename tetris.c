@@ -195,67 +195,6 @@ void printGame(int **static_field, int **dynamic_field, int**preview, double tim
         free(printString);
 }
 
-void printGameFull(int **static_field, int **dynamic_field, int**preview, double time, int line_cnt, int tetris_cnt, int score, int level) {
-        char *printString;
-        int i, j, hours, minutes, seconds;
-
-        printString = (char *) malloc(5 * sizeof(char));
-        clearConsole();
-        for (i = 0; i < MAX_BOUND_ALL_TILES_Y; i++) {
-                printf("<! ");
-                for (j = 0; j < MAX_BOUND_ALL_TILES_X; j++) {
-                        if (*(*(preview + i) + j) == 0) {
-                                printString = "   ";
-                        } else if (*(*(preview + i) + j) == 1) {
-                                printString = "[] ";
-                        }
-                        printf("%s", printString);
-                }
-                printf("!>\n");
-        }
-        printf("<! ");
-        for (i = 0; i < MAX_BOUND_ALL_TILES_X; i++) {
-                printf("*  ");
-        }
-        printf("!>\n   ");
-        for (i = 0; i < MAX_BOUND_ALL_TILES_X; i++) {
-                printf("\\/ ");
-        }
-        printf("\n\n");
-        for (i = 0; i < FIELD_HEIGHT; i++) {
-                if (i == 2) {
-                        printf("<!-");
-                        for (j = 0; j < FIELD_WIDTH; j++) {
-                                printf("---");
-                        }
-                        printf("!>\n");
-                }
-                printf("<! ");
-                for (j = 0; j < FIELD_WIDTH; j++) {
-                        if (*(*(static_field + i) + j) == 1 || *(*(dynamic_field + i) + j) == 1) {
-                                printString = "[] ";
-                        } else {
-                                printString = ".  ";
-                        }
-                        printf("%s", printString);
-                }
-                printf("!>\n");
-        }
-        printf("<! ");
-        for (i = 0; i < FIELD_WIDTH; i++) {
-                printf("*  ");
-        }
-        printf("!>\n   ");
-        for (i = 0; i < FIELD_WIDTH; i++) {
-                printf("\\/ ");
-        }
-        printf("\n");
-        convertTime(time, &hours, &minutes, &seconds);
-        printf("Time played: %ih:%im:%is\nScore: %i\nLevel: %i\nLines: %i\nTetris: %i\n", hours, minutes, seconds, score, level, line_cnt, tetris_cnt);
-        free(printString);
-}
-
-
 void addActiveTileToStaticField(int **static_field, int **dynamic_field, int x_pos, int y_pos) {
         int i, j;
 
@@ -1006,14 +945,14 @@ void printStartMenu(int **field) {
         for (i = 0; i < START_MENU_WIDTH; i++) {
                 printf("\\/ ");
         }
-        printf("\n\nTo play the game press 'y' for help press 'h'\n");
+        printf("\n\nTo play the game press 'p' for help press 'h'\n");
 }
 
 void runStartMenu(enum STATES *app_state) {
         int **field, i;
         FILE *titelscr_file;
 
-        titelscr_file = fopen("./titelscreen.txt", "r");
+        titelscr_file = fopen("./files/titelscreen.txt", "r");
         if (titelscr_file == NULL) {
                 /*cannot open file --> error*/
         }
