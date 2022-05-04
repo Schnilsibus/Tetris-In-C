@@ -128,33 +128,51 @@ void convertTime(double time, int *hours, int *minutes, int *seconds) {
 
 void printGame(int **static_field, int **dynamic_field, int**preview, double time, int line_cnt, int tetris_cnt, int score, int level) {
         char *printString;
-        int i, j, hours, minutes, seconds;
+        int i, j, k, hours, minutes, seconds;
 
         printString = (char *) malloc(5 * sizeof(char));
         clearConsole();
-        for (i = 0; i < MAX_BOUND_ALL_TILES_Y; i++) {
-                printf("<! ");
-                for (j = 0; j < MAX_BOUND_ALL_TILES_X; j++) {
-                        if (*(*(preview + i) + j) == 0) {
-                                printString = "   ";
-                        } else if (*(*(preview + i) + j) == 1) {
-                                printString = "[] ";
-                        }
-                        printf("%s", printString);
-                }
-                printf("!>\n");
-        }
-        printf("<! ");
-        for (i = 0; i < MAX_BOUND_ALL_TILES_X; i++) {
-                printf("*  ");
-        }
-        printf("!>\n   ");
-        for (i = 0; i < MAX_BOUND_ALL_TILES_X; i++) {
-                printf("\\/ ");
-        }
-        printf("\n\n");
+        convertTime(time, &hours, &minutes, &seconds);
         for (i = 2; i < FIELD_HEIGHT; i++) {
-                printf("<! ");
+                if (i == 2) {
+                        printf("Tetrises scored: %i\t\t<! ", tetris_cnt);
+                } else if (i == 4) {
+                        printf("Lines cleared: %i\t\t<! ", line_cnt);
+                } else if (i == 6) {
+                        printf("Level: %i\t\t\t<! ", level);
+                } else if (i == 8) {
+                        printf("Score: %i\t\t\t<! ", score);
+                } else if (i == 10) {
+                        printf("Time played: %ih:%im:%is\t\t<! ", hours, minutes, seconds);
+                } else if (i == 12) {
+                        printf("Next tetromino:\t\t\t<! ");
+                } else if (i >= 14 && i <= 17) {
+                        printf("\t<! ");
+                        for (k = 0; k < MAX_BOUND_ALL_TILES_X; k++) {
+                                if (*(*(preview + i - PREVIEW_HIGHT) + k) == 0) {
+                                        printf(".  ");
+                                } else {
+                                        printf("[] ");
+                                }
+                        }
+                        printf("!>\t<! ");
+                } else if (i == 18) {
+                        printf("\t<! ");
+                        for (k = 0; k < MAX_BOUND_ALL_TILES_X; k++) {
+                                printf("*  ");
+                        }
+                        printf("!>\t<! ");
+                } else if (i == 19) {
+                        printf("\t<! ");
+                        for (k = 0; k < MAX_BOUND_ALL_TILES_X; k++) {
+                                printf("\\/ ");
+                        }
+                        printf("!>\t<! ");
+                } else if (i == 21) {
+                        printf("Highscore:\t\t\t<! ");
+                } else {
+                        printf("\t\t\t\t<! ");
+                }
                 for (j = 0; j < FIELD_WIDTH; j++) {
                         if (*(*(static_field + i) + j) == 1 || *(*(dynamic_field + i) + j) == 1) {
                                 printString = "[] ";
@@ -165,17 +183,15 @@ void printGame(int **static_field, int **dynamic_field, int**preview, double tim
                 }
                 printf("!>\n");
         }
-        printf("<! ");
+        printf("\t\t\t\t<! ");
         for (i = 0; i < FIELD_WIDTH; i++) {
                 printf("*  ");
         }
-        printf("!>\n   ");
+        printf("!>\n\t\t\t\t   ");
         for (i = 0; i < FIELD_WIDTH; i++) {
                 printf("\\/ ");
         }
         printf("\n");
-        convertTime(time, &hours, &minutes, &seconds);
-        printf("Time played: %ih:%im:%is\nScore: %i\nLevel: %i\nLines: %i\nTetris: %i\n", hours, minutes, seconds, score, level, line_cnt, tetris_cnt);
         free(printString);
 }
 
@@ -897,7 +913,7 @@ void runGame(enum STATES *app_state, int *score, int *line_cnt, int *tetris_cnt)
         }
         setPreview(preview, next_tile);
         last_move = clock();
-        printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), *line_cnt, *tetris_cnt, *score, level);
+        printGame(static_field, dynamic_field, preview, difftime(time(NULL), start_time), *line_cnt, *tetris_cnt, *score, level);
         while(*app_state == RUNNING) {
                 switch (reactToKeyRun(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y, app_state)) {
                         case ESC:
@@ -909,7 +925,7 @@ void runGame(enum STATES *app_state, int *score, int *line_cnt, int *tetris_cnt)
                         case UP:
                         case LEFT:
                         case RIGHT:
-                                printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), *line_cnt, *tetris_cnt, *score, level);
+                                printGame(static_field, dynamic_field, preview, difftime(time(NULL), start_time), *line_cnt, *tetris_cnt, *score, level);
                                 break;
                         case DOWN:
                                 break;
@@ -929,7 +945,7 @@ void runGame(enum STATES *app_state, int *score, int *line_cnt, int *tetris_cnt)
                                         *app_state = GAME_OVER;
                                 }
                         }
-                        printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), *line_cnt, *tetris_cnt, *score, level);
+                        printGame(static_field, dynamic_field, preview, difftime(time(NULL), start_time), *line_cnt, *tetris_cnt, *score, level);
                 }
         }
 

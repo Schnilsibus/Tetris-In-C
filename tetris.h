@@ -33,6 +33,8 @@
 #define START_MENU_HEIGHT 6
 #define START_MENU_WIDTH 30
 
+#define PREVIEW_HIGHT 14
+
 enum TETROMINOS {I = 1, O = 2, L = 3, J = 4, T = 5, Z = 6, S = 7};
 enum KEYS {UP = 72, LEFT = 75, DOWN = 80, RIGHT = 77, ESC = 27, H = 104, P = 112, M = 109, Q = 113, OTHER = 0, NONE = -1};
 enum STATES {START = 0, RUNNING = 1, GAME_OVER = 2, HELP = 3, EXIT = 4};
