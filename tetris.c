@@ -10,9 +10,7 @@ void delay(int milliseconds) {
         time_t end;
 
         end = clock() + milliseconds*(CLOCKS_PER_SEC/1000);
-        while(clock() < end) {
-
-        }
+        while(clock() < end) {}
 }
 
 void clearConsole() {
@@ -940,12 +938,82 @@ void runGame(enum STATES *app_state, int *score, int *line_cnt, int *tetris_cnt)
         deletePreview(preview);
 }
 
+void setStartMenuField(int **field, FILE *titelscr_file) {
+        int i, j, c;
+
+        for (i = 0; i < START_MENU_HEIGHT; i++) {
+                for (j = 0; j < START_MENU_WIDTH; j++) {
+                        c = fgetc(titelscr_file);
+                        if (c == EOF) {
+                                printf("error-eof\n");
+                                /*file not as expected --> error*/
+                        } else if (c == ' ') {
+                                *(*(field + i) + j) = 0;
+                        } else if (c == 'x') {
+                                *(*(field + i) + j) = 1;
+                        } else {
+                                printf("error-else\n");
+                                /*file not as expected --> error*/
+                        }
+                }
+                if (fgetc(titelscr_file) != '\n') {
+                        printf("error-noenter\n");
+                        /*file not as expected --> error*/
+                }
+        }
+        if (fgetc(titelscr_file) != EOF) {
+                printf("error-noeof\n");
+                /*file not as expected --> error*/
+        }
+}
+
+void printStartMenu(int **field) {
+        int i, j;
+
+        printf("\n");
+        for (i = 0; i < START_MENU_HEIGHT; i++) {
+                printf("<! ");
+                for (j = 0; j < START_MENU_WIDTH; j++) {
+                        if (*(*(field + i) + j) == 0) {
+                                printf("   ");
+                        } else if (*(*(field + i) + j) == 1) {
+                                printf("[] ");
+                        }
+                }
+                printf("!>\n");
+        }
+        printf("<! ");
+        for (i = 0; i < START_MENU_WIDTH; i++) {
+                printf("*  ");
+        }
+        printf("!>\n   ");
+        for (i = 0; i < START_MENU_WIDTH; i++) {
+                printf("\\/ ");
+        }
+        printf("\n\nTo play the game press 'y' for help press 'h'\n");
+}
+
 void runStartMenu(enum STATES *app_state) {
-        printf("This is a title screen\n");
-        printf("press h for help p to play\n");
+        int **field, i;
+        FILE *titelscr_file;
+
+        titelscr_file = fopen("./titelscreen.txt", "r");
+        if (titelscr_file == NULL) {
+                /*cannot open file --> error*/
+        }
+        field = (int **) malloc(START_MENU_HEIGHT * sizeof(int *));
+        for (i = 0; i < START_MENU_HEIGHT; i++) {
+                *(field + i) = (int *) malloc(START_MENU_WIDTH * sizeof(int));
+        }
+        setStartMenuField(field, titelscr_file);
+        printStartMenu(field);
         while (*app_state == START) {
                 reactToKeyStd(app_state);
         }
+        for (i = 0; i < START_MENU_HEIGHT; i++) {
+                free(*(field + 1));
+        }
+        free(field);
 }
 
 void runHelpMenu(enum STATES *app_state) {
