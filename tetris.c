@@ -714,7 +714,7 @@ enum KEYS checkKeyHit() {
 
         if (kbhit()) {
                 a = getch();
-                if (a == ESC || a == H || a == P || a == M) {
+                if (a == ESC || a == H || a == P || a == M || a == Q) {
                         return a;
                 } else if (a == 0 || a == 0xE0) {
                         if (kbhit()) {
@@ -748,7 +748,10 @@ enum KEYS  reactToKeyRun(int **static_field, int **dynamic_field, enum TETROMINO
                 case H:
                 case P:
                 case M:
-                        return key;
+                        return OTHER;
+                case Q:
+                        *app_state = GAME_OVER;
+                        return Q;
                 case UP:
                         rotateTileClockwise(static_field, dynamic_field, activeTile, *tile_pos_x, *tile_pos_y);
                         return UP;
@@ -791,12 +794,14 @@ enum KEYS reactToKeyStd(enum STATES *app_state) {
                         }
                         return P;
                 case M:
-                        if (*app_state == HELP) {
+                        if (*app_state == HELP || *app_state == GAME_OVER) {
                                 *app_state = START;
                                 return M;
                         } else {
                                 return OTHER;
                         }
+                case Q:
+                        return OTHER;
                 case UP:
                 case DOWN:
                 case LEFT:
@@ -863,15 +868,23 @@ void reactToLineClear(int lines, int *line_cnt, int *tetris_cnt, int *level, int
         }
 }
 
-void runGame(enum STATES *app_state) {
-        int **static_field, **dynamic_field, **preview, tile_pos_x, tile_pos_y, tick_speed, level, line_cnt, score, tetris_cnt;
+void initializeGame(int *score, int *line_cnt, int *tetris_cnt, int *level, int *tick_speed, time_t *start_time, enum TETROMINOS *active_tile, enum TETROMINOS *next_tile) {
+        *start_time = time(NULL);
+        *score = 0;
+        *line_cnt = 0;
+        *tetris_cnt = 0;
+        *level = 1;
+        *tick_speed = MAX_TICK_SPEED;
+        *active_tile = getNextTile();
+        *next_tile = getNextTile();
+}
+
+void runGame(enum STATES *app_state, int *score, int *line_cnt, int *tetris_cnt) {
+        int **static_field, **dynamic_field, **preview, tile_pos_x, tile_pos_y, tick_speed, level;
         enum TETROMINOS active_tile, next_tile;
         clock_t last_move;
         time_t start_time;
 
-        srand(time(NULL));
-
-        start_time = time(NULL);
         static_field = declareField();
         dynamic_field = declareField();
         preview = declarePreview();
@@ -879,28 +892,26 @@ void runGame(enum STATES *app_state) {
         initializeField(dynamic_field);
         initializePreview(preview);
 
-        level = MIN_LEVEL;
-        line_cnt = 0;
-        score = 0;
-        tick_speed = MAX_TICK_SPEED;
-        active_tile = getNextTile();
-        next_tile = getNextTile();
+        initializeGame(score, line_cnt, tetris_cnt, &level, &tick_speed, &start_time, &active_tile, &next_tile);
+
         if (! spawnNewTile(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y)) {
                 /*could not spawn first tile --> error*/
         }
         setPreview(preview, next_tile);
         last_move = clock();
+        printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), *line_cnt, *tetris_cnt, *score, level);
         while(*app_state == RUNNING) {
                 switch (reactToKeyRun(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y, app_state)) {
                         case ESC:
                         case H:
                         case P:
                         case M:
+                        case Q:
                                 break;
                         case UP:
                         case LEFT:
                         case RIGHT:
-                                printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), line_cnt, tetris_cnt, score, level);
+                                printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), *line_cnt, *tetris_cnt, *score, level);
                                 break;
                         case DOWN:
                                 break;
@@ -912,7 +923,7 @@ void runGame(enum STATES *app_state) {
                         last_move = clock();
                         if (! moveTileDown(static_field, dynamic_field, &tile_pos_x, &tile_pos_y)) {
                                 addActiveTileToStaticField(static_field, dynamic_field, tile_pos_x, tile_pos_y);
-                                reactToLineClear(removeFullLines(static_field), &line_cnt, &tetris_cnt, &level, &score, &tick_speed);
+                                reactToLineClear(removeFullLines(static_field), line_cnt, tetris_cnt, &level, score, &tick_speed);
                                 active_tile = next_tile;
                                 next_tile = getNextTile();
                                 setPreview(preview, next_tile);
@@ -920,7 +931,7 @@ void runGame(enum STATES *app_state) {
                                         *app_state = GAME_OVER;
                                 }
                         }
-                        printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), line_cnt, tetris_cnt, score, level);
+                        printGameFull(static_field, dynamic_field, preview, difftime(time(NULL), start_time), *line_cnt, *tetris_cnt, *score, level);
                 }
         }
 
@@ -944,18 +955,31 @@ void runHelpMenu(enum STATES *app_state) {
         }
 }
 
+void runGameOverMenu(enum STATES *app_state, int score, int line_cnt, int tetris_cnt) {
+        printf("This is a game over menu\nYour score: %i\nLines cleared: %i\nTetrises: %i\n", score, line_cnt, tetris_cnt);
+        while(*app_state == GAME_OVER) {
+                reactToKeyStd(app_state);
+        }
+}
+
 int main() {
+        int score, line_cnt, tetris_cnt;
         enum STATES app_state;
+
+        srand(time(NULL));
+
         app_state = START;
         while (app_state != EXIT) {
+                clearConsole();
                 switch (app_state) {
                         case START:
                                 runStartMenu(&app_state);
                                 break;
                         case RUNNING:
-                                runGame(&app_state);
+                                runGame(&app_state, &score, &line_cnt, &tetris_cnt);
                                 break;
                         case GAME_OVER:
+                                runGameOverMenu(&app_state, score, line_cnt, tetris_cnt);
                                 break;
                         case HELP:
                                 runHelpMenu(&app_state);
