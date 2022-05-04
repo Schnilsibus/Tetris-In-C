@@ -57,8 +57,14 @@ int **declarePreview() {
         int i;
 
         preview = (int **) malloc(MAX_BOUND_ALL_TILES_Y * sizeof(int *));
+        if (preview == NULL) {
+                /*error*/
+        }
         for (i = 0; i < MAX_BOUND_ALL_TILES_Y; i++) {
                 *(preview + i) = (int *) malloc(MAX_BOUND_ALL_TILES_X * sizeof(int));
+                if (*(preview + i) == NULL) {
+                        /*error*/
+                }
         }
         return preview;
 }
@@ -87,8 +93,14 @@ int **declareField() {
         int i;
 
         field = (int **) malloc(FIELD_HEIGHT * sizeof(int *));
+        if (field == NULL) {
+                /*error*/
+        }
         for (i = 0; i < FIELD_HEIGHT; i++) {
                 *(field + i) = (int *) malloc(FIELD_WIDTH * sizeof(int));
+                if (*(field + i) == NULL) {
+                        /*error*/
+                }
         }
         return field;
 }
@@ -848,7 +860,7 @@ void runGame(enum STATES *app_state, int *score, int *line_cnt, int *tetris_cnt)
         initializeGame(score, line_cnt, tetris_cnt, &level, &tick_speed, &start_time, &active_tile, &next_tile);
 
         if (! spawnNewTile(static_field, dynamic_field, active_tile, &tile_pos_x, &tile_pos_y)) {
-                /*could not spawn first tile --> error*/
+                /*error*/
         }
         setPreview(preview, next_tile);
         last_move = clock();
@@ -893,42 +905,68 @@ void runGame(enum STATES *app_state, int *score, int *line_cnt, int *tetris_cnt)
         deletePreview(preview);
 }
 
-void setStartMenuField(int **field, FILE *titelscr_file) {
-        int i, j, c;
+void calculateXandYFromHDLFile(FILE *stream, int *x, int *y) {
+        int c, cnt_x, cnt_y;
 
-        for (i = 0; i < START_MENU_HEIGHT; i++) {
-                for (j = 0; j < START_MENU_WIDTH; j++) {
-                        c = fgetc(titelscr_file);
-                        if (c == EOF) {
-                                printf("error-eof\n");
-                                /*file not as expected --> error*/
-                        } else if (c == ' ') {
-                                *(*(field + i) + j) = 0;
-                        } else if (c == 'x') {
-                                *(*(field + i) + j) = 1;
-                        } else {
-                                printf("error-else\n");
-                                /*file not as expected --> error*/
-                        }
+        cnt_x = 0;
+        cnt_y = 0;
+        c = fgetc(stream);
+        while(c != EOF) {
+                if (cnt_y == 0 && c != '\n') {
+                        cnt_x++;
+                } else if (c == '\n') {
+                        cnt_y++;
                 }
-                if (fgetc(titelscr_file) != '\n') {
-                        printf("error-noenter\n");
-                        /*file not as expected --> error*/
-                }
+                c = fgetc(stream);
         }
-        if (fgetc(titelscr_file) != EOF) {
-                printf("error-noeof\n");
-                /*file not as expected --> error*/
-        }
+        *x = cnt_x;
+        *y = cnt_y;
 }
 
-void printStartMenu(int **field) {
+int **calculateArrayFromHDLFile(FILE *stream, int x, int y) {
+        int **array, i, j, c;
+
+        array = (int **) malloc(y * sizeof(int *));
+        if (array == NULL) {
+                /*error*/
+        }
+        for (i = 0; i < y; i++) {
+                *(array + i) = (int *) malloc(x * sizeof(int));
+                if (*(array + i) == NULL) {
+                        /*error*/
+                }
+        }
+        for (i = 0; i < y; i++) {
+                for (j = 0; j < x; j++) {
+                        c = fgetc(stream);
+                        if (c == EOF) {
+                                /*error*/
+                        } else if (c == 'x') {
+                                *(*(array + i) + j) = 1;
+                        } else if (c == ' ') {
+                                *(*(array + i) + j) = 0;
+                        } else {
+                                /*error*/
+                        }
+                }
+                if (fgetc(stream) != '\n') {
+                        /*error*/
+                }
+        }
+        if (fgetc(stream) != EOF) {
+                /*error*/
+        }
+
+        return array;
+}
+
+void printFDLFile(int **field, int x, int y) {
         int i, j;
 
         printf("\n");
-        for (i = 0; i < START_MENU_HEIGHT; i++) {
+        for (i = 0; i < y; i++) {
                 printf("<! ");
-                for (j = 0; j < START_MENU_WIDTH; j++) {
+                for (j = 0; j < x; j++) {
                         if (*(*(field + i) + j) == 0) {
                                 printf("   ");
                         } else if (*(*(field + i) + j) == 1) {
@@ -938,50 +976,90 @@ void printStartMenu(int **field) {
                 printf("!>\n");
         }
         printf("<! ");
-        for (i = 0; i < START_MENU_WIDTH; i++) {
+        for (i = 0; i < x; i++) {
                 printf("*  ");
         }
         printf("!>\n   ");
-        for (i = 0; i < START_MENU_WIDTH; i++) {
+        for (i = 0; i < x; i++) {
                 printf("\\/ ");
         }
-        printf("\n\nTo play the game press 'p' for help press 'h'\n");
 }
 
 void runStartMenu(enum STATES *app_state) {
-        int **field, i;
-        FILE *titelscr_file;
+        int **field, i, x, y;
+        FILE *titelscr_file1, *titelscr_file2;
 
-        titelscr_file = fopen("./files/titelscreen.txt", "r");
-        if (titelscr_file == NULL) {
-                /*cannot open file --> error*/
+        clearConsole();
+        titelscr_file1 = fopen("./files/tetris.hdl", "r");
+        titelscr_file2 = fopen("./files/tetris.hdl", "r");
+        if (titelscr_file1 == NULL || titelscr_file2 == NULL) {
+                /*error*/
         }
-        field = (int **) malloc(START_MENU_HEIGHT * sizeof(int *));
-        for (i = 0; i < START_MENU_HEIGHT; i++) {
-                *(field + i) = (int *) malloc(START_MENU_WIDTH * sizeof(int));
-        }
-        setStartMenuField(field, titelscr_file);
-        printStartMenu(field);
+        calculateXandYFromHDLFile(titelscr_file1, &x, &y);
+        field = calculateArrayFromHDLFile(titelscr_file2, x, y);
+        printFDLFile(field, x, y);
+        printf("\n\nTo play the game press 'p' for help press 'h'\n");
         while (*app_state == START) {
                 reactToKeyStd(app_state);
         }
-        for (i = 0; i < START_MENU_HEIGHT; i++) {
+        for (i = 0; i < y; i++) {
                 free(*(field + 1));
         }
         free(field);
+        if (fclose(titelscr_file1) == EOF || fclose(titelscr_file2) == EOF) {
+                /*error*/
+        }
 }
 
 void runHelpMenu(enum STATES *app_state) {
-        printf("This is a help menu\n");
+        int **field, i, x, y;
+        FILE *titelscr_file1, *titelscr_file2;
+
+        clearConsole();
+        titelscr_file1 = fopen("./files/help.hdl", "r");
+        titelscr_file2 = fopen("./files/help.hdl", "r");
+        if (titelscr_file1 == NULL || titelscr_file2 == NULL) {
+                /*error*/
+        }
+        calculateXandYFromHDLFile(titelscr_file1, &x, &y);
+        field = calculateArrayFromHDLFile(titelscr_file2, x, y);
+        printFDLFile(field, x, y);
+        printf("\n\nsome future help text\n");
         while (*app_state == HELP) {
                 reactToKeyStd(app_state);
+        }
+        for (i = 0; i < y; i++) {
+                free(*(field + 1));
+        }
+        free(field);
+        if (fclose(titelscr_file1) == EOF || fclose(titelscr_file2) == EOF) {
+                /*error*/
         }
 }
 
 void runGameOverMenu(enum STATES *app_state, int score, int line_cnt, int tetris_cnt) {
-        printf("This is a game over menu\nYour score: %i\nLines cleared: %i\nTetrises: %i\n", score, line_cnt, tetris_cnt);
-        while(*app_state == GAME_OVER) {
+        int **field, i, x, y;
+        FILE *titelscr_file1, *titelscr_file2;
+
+        clearConsole();
+        titelscr_file1 = fopen("./files/game_over.hdl", "r");
+        titelscr_file2 = fopen("./files/game_over.hdl", "r");
+        if (titelscr_file1 == NULL || titelscr_file2 == NULL) {
+                /*error*/
+        }
+        calculateXandYFromHDLFile(titelscr_file1, &x, &y);
+        field = calculateArrayFromHDLFile(titelscr_file2, x, y);
+        printFDLFile(field, x, y);
+        printf("\n\nFinal score: %i\n\nTotal lines cleared: %i\n\nTotal tetris-clears: %i\n", score, line_cnt, tetris_cnt);
+        while (*app_state == GAME_OVER) {
                 reactToKeyStd(app_state);
+        }
+        for (i = 0; i < y; i++) {
+                free(*(field + 1));
+        }
+        free(field);
+        if (fclose(titelscr_file1) == EOF || fclose(titelscr_file2) == EOF) {
+                /*error*/
         }
 }
 
@@ -993,7 +1071,6 @@ int main() {
 
         app_state = START;
         while (app_state != EXIT) {
-                clearConsole();
                 switch (app_state) {
                         case START:
                                 runStartMenu(&app_state);
