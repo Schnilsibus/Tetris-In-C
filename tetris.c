@@ -180,8 +180,6 @@ void printGame(int **static_field, int **dynamic_field, int**preview, double tim
                                 printf("\\/ ");
                         }
                         printf("!>\t<! ");
-                } else if (i == 21) {
-                        printf("Highscore:\t\t\t<! ");
                 } else {
                         printf("\t\t\t\t<! ");
                 }
@@ -713,7 +711,6 @@ enum KEYS  reactToKeyRun(int **static_field, int **dynamic_field, enum TETROMINO
                 case H:
                 case P:
                 case M:
-                        return OTHER;
                 case Q:
                         *app_state = GAME_OVER;
                         return Q;
@@ -1024,7 +1021,10 @@ void runHelpMenu(enum STATES *app_state) {
         calculateXandYFromHDLFile(titelscr_file1, &x, &y);
         field = calculateArrayFromHDLFile(titelscr_file2, x, y);
         printFDLFile(field, x, y);
-        printf("\n\nsome future help text\n");
+        printf("\n\nControls-Menus:\nIn the titelscreen (heading 'TETRIS') press 'p' to play and 'h' to see this help-screen.\nIn the help-screen(heading 'HELP') press 'm' to return to the titelscreen.\nWhile playing the game press 'q' to quit playing the game.\nIn the game-over-screen (heading 'GAME OVER') press 'm' to return to the titelscreen.\nYou can always close the whole game by pressing 'esc'.\n\n");
+        printf("Controls-Game:\nThe game is controled by the arrow keys press up to rotate clockwise, and down to imidiatly drop the tetromino.\nPress left or right to move the tetromino left or right.\n\n");
+        printf("Useful-Info\nThe more lines you clear at once the more points you'll gain. E.g. a tetris (clearing 4 lines at once) is worth more points than clearing 1 line 4 times. So aim for the tetris.\nYou can see at the lefthand side of the game a littel box where a tetronino is displayed. This will be the next one to spawn after you placed the current one. So plan ahead.\n");
+        printf("Clearing lines will increase your level. The higher your level is the more points you'll be awarded for each clear. But also the speed at which the tiles drop will increase.\n\nThis would be all so have fun:)\n");
         while (*app_state == HELP) {
                 reactToKeyStd(app_state);
         }
@@ -1050,7 +1050,7 @@ void runGameOverMenu(enum STATES *app_state, int score, int line_cnt, int tetris
         calculateXandYFromHDLFile(titelscr_file1, &x, &y);
         field = calculateArrayFromHDLFile(titelscr_file2, x, y);
         printFDLFile(field, x, y);
-        printf("\n\nFinal score: %i\n\nTotal lines cleared: %i\n\nTotal tetris-clears: %i\n", score, line_cnt, tetris_cnt);
+        printf("\n\nFinal score: %i\n\nTotal lines cleared: %i\n\nTotal tetris-clears: %i\n\nPress 'm' to return to the titelscreen otherwise press 'esc' to close the game\n", score, line_cnt, tetris_cnt);
         while (*app_state == GAME_OVER) {
                 reactToKeyStd(app_state);
         }
@@ -1062,6 +1062,8 @@ void runGameOverMenu(enum STATES *app_state, int score, int line_cnt, int tetris
                 /*error*/
         }
 }
+
+
 
 int main() {
         int score, line_cnt, tetris_cnt;
